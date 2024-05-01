@@ -1,15 +1,57 @@
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+package dev.lpa;
+
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+        var dtf = DateTimeFormatter.ofLocalizedDateTime(
+                FormatStyle.MEDIUM,
+                FormatStyle.LONG
+        );
+
+        Callable<ZonedDateTime> waitThenDoIt = () ->{
+            ZonedDateTime zdt = null;
+            try{
+                TimeUnit.SECONDS.sleep(2);
+                zdt = ZonedDateTime.now();
+            }
+            catch(InterruptedException e){
+                throw new RuntimeException(e);
+            }
+            return zdt;
+        };
+
+        var threadPool = Executors.newFixedThreadPool(2);
+        List<Callable<ZonedDateTime>> list =
+                Collections.nCopies(4, waitThenDoIt);
+
+        try{
+            System.out.println("---> " + ZonedDateTime.now().format(dtf));
+            List<Future<ZonedDateTime>> futureList = threadPool.invokeAll(list);
+            for (Future<ZonedDateTime> result : futureList){
+                try{
+                    System.out.println(result.get(1, TimeUnit.SECONDS).format(dtf));
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
         }
+        catch(InterruptedException e){
+            throw new RuntimeException(e);
+        }
+        finally{
+            threadPool.shutdown();
+        }
+
     }
 }
